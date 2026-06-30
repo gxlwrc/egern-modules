@@ -149,7 +149,7 @@ export default async function(ctx) {
         type: "stack",
         direction: "row",
         alignItems: "center",
-        justifyContent: "spaceBetween",
+        justifyContent: "space-between",
         children: [
           { type: "text", text: `💧${humidity}%`, font: { size: 11 }, textColor: colors.green },
           { type: "text", text: `🌬${windSpeed}km/h`, font: { size: 11 }, textColor: colors.purple },

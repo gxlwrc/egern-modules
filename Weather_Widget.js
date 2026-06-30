@@ -135,7 +135,7 @@ export default async function(ctx) {
           {
             type: "stack",
             direction: "column",
-            alignItems: "flexEnd",
+            alignItems: "trailing",
             gap: 2,
             children: [
               { type: "text", text: `体感${feelsLike}°`, font: { size: 11 }, textColor: colors.textDim },

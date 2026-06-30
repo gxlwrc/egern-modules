@@ -1,0 +1,10 @@
+scriptings:
+- generic:
+    name: 天气小组件
+    script_url: https://raw.githubusercontent.com/gxlwrc/egern-modules/main/Weather_Widget.js
+
+widgets:
+- name: 天气
+  script_name: 天气小组件
+  env:
+    city: weifang

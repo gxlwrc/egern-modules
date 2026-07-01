@@ -27,6 +27,7 @@ export default async function(ctx) {
     purple: { light: "#5856D6", dark: "#7D7AFF" },
     orange: { light: "#FF9500", dark: "#FFB347" },
     red: { light: "#FF3B30", dark: "#FF6B6B" },
+    blue: { light: "#007AFF", dark: "#5AC8FA" },
   };
 
   const skyIcons = {
@@ -60,11 +61,12 @@ export default async function(ctx) {
   let temp="--", humidity="--", windSpeed="--";
   let desc="加载中...", icon="🌤️";
   let feelsLike="--", aqi="--";
+  let hourly = [];
 
   const CK = "weather_caiyun_"+city;
   try {
     const ca = ctx.storage.getJSON(CK);
-    if(ca&&ca.t){temp=ca.t;humidity=ca.h;windSpeed=ca.w;desc=ca.d;icon=ca.i;feelsLike=ca.f;aqi=ca.a;}
+    if(ca&&ca.t){temp=ca.t;humidity=ca.h;windSpeed=ca.w;desc=ca.d;icon=ca.i;feelsLike=ca.f;aqi=ca.a;hourly=ca.hourly||[];}
   }catch(_){}
 
   try {
@@ -81,8 +83,37 @@ export default async function(ctx) {
     feelsLike = Math.round(rt.apparent_temperature);
     aqi = rt.air_quality && rt.air_quality.aqi ? rt.air_quality.aqi.chn : "--";
 
-    ctx.storage.setJSON(CK, {t:temp, h:humidity, w:windSpeed, d:desc, i:icon, f:feelsLike, a:aqi});
+    // 获取未来小时预报
+    const hUrl = "https://api.caiyunapp.com/v2.6/"+token+"/"+coord+"/hourly?hourlysteps=6";
+    const hr = await ctx.http.get(hUrl, {timeout:10000});
+    const hj = await hr.json();
+    const hData = hj.result.hourly;
+    hourly = [];
+    if(hData && hData.temperature) {
+      for(let i = 0; i < Math.min(6, hData.temperature.length); i++) {
+        const t = hData.temperature[i];
+        const sky = hData.skycon[i];
+        const prob = hData.precipitation[i];
+        hourly.push({
+          time: new Date(t.datetime).getHours() + ":00",
+          temp: Math.round(t.value),
+          icon: skyIcons[sky.value] || "🌤️",
+          rainProb: prob ? Math.round(prob.probability * 100) : 0
+        });
+      }
+    }
+
+    ctx.storage.setJSON(CK, {t:temp, h:humidity, w:windSpeed, d:desc, i:icon, f:feelsLike, a:aqi, hourly:hourly});
   } catch(e) {}
+
+  // 找最近下雨时间
+  let rainInfo = "";
+  for(let i = 0; i < hourly.length; i++) {
+    if(hourly[i].rainProb > 30) {
+      rainInfo = hourly[i].time + "有" + hourly[i].rainProb + "%概率下雨";
+      break;
+    }
+  }
 
   return {
     type: "widget",
@@ -120,8 +151,25 @@ export default async function(ctx) {
         children: [
           {type:"text", text:"💧"+humidity+"%", font:{size:11}, textColor:C.green},
           {type:"spacer"},
-          {type:"text", text:"🌬"+windSpeed+"m/s", font:{size:11}, textColor:C.purple}
+          {type:"text", text:"🌬"+windSpeed+"m/s", font:{size:11}, textColor:C.purple},
+          {type:"spacer"},
+          {type:"text", text:rainInfo?"🌧"+rainInfo:"", font:{size:11}, textColor:C.blue}
         ]
+      },
+      // 未来小时预报
+      {
+        type: "stack", direction: "row",
+        children: hourly.map(function(h) {
+          return {
+            type: "stack", direction: "column",
+            children: [
+              {type:"text", text:h.time, font:{size:10}, textColor:C.dim},
+              {type:"text", text:h.icon, font:{size:16}},
+              {type:"text", text:h.temp+"°", font:{size:11,weight:"medium"}, textColor:C.text},
+              {type:"text", text:h.rainProb>0?h.rainProb+"%":"", font:{size:9}, textColor:h.rainProb>30?C.red:C.dim}
+            ]
+          };
+        })
       }
     ]
   };

@@ -1,59 +1,44 @@
-// iOS 风格天气小组件
+// 天气小组件 - Medium 适配版
 export default async function(ctx) {
   const token = "yCRHZoxURpIEmwvO";
-  const loc = "117.07,36.72"; // 潍坊
+  const loc = "117.07,36.72";
   
-  const url = `https://api.caiyunapp.com/v2.6/${token}/${loc}/weather?dailystep=1&hourlysteps=24`;
-  
+  const url = `https://api.caiyunapp.com/v2.6/${token}/${loc}/realtime`;
   const resp = await fetch(url);
   const data = await resp.json();
+  const r = data.result.realtime;
   
-  const w = data.result;
-  const hourly = w.hourly;
+  const temp = Math.round(r.temperature);
+  const humidity = Math.round(r.humidity * 100);
+  const skycon = r.skycon;
   
-  const temp = Math.round(hourly.temperature[0].value);
-  const desc = hourly.description[0].value;
-  const humidity = Math.round(hourly.humidity[0].value * 100);
+  const iconMap = {
+    "CLEAR_DAY": "☀️", "CLEAR_NIGHT": "🌙",
+    "PARTLY_CLOUDY_DAY": "⛅", "PARTLY_CLOUDY_NIGHT": "☁️",
+    "CLOUDY": "☁️", "LIGHT_RAIN": "🌦", "MODERATE_RAIN": "🌧",
+    "HEAVY_RAIN": "🌧", "LIGHT_SNOW": "🌨", "MODERATE_SNOW": "❄️",
+    "FOG": "🌫", "HAZE": "🌫"
+  };
+  const icon = iconMap[skycon] || "☀️";
   
-  // 天气图标
-  let icon = "☀️";
-  if (desc.includes("雨")) icon = "🌧";
-  else if (desc.includes("云")) icon = "⛅";
-  else if (desc.includes("阴")) icon = "☁️";
-  else if (desc.includes("雪")) icon = "❄️";
-  else if (desc.includes("雾") || desc.includes("霾")) icon = "🌫";
-  
-  // 背景色（iOS 风格渐变色系）
-  let bg = "#4a90d9";
-  if (desc.includes("雨")) bg = "#5b7a8a";
-  else if (desc.includes("云") || desc.includes("阴")) bg = "#6b8e9e";
-  else if (desc.includes("晴")) bg = "#4a90d9";
-  else if (desc.includes("雪")) bg = "#8ba4b5";
-  else if (desc.includes("雾") || desc.includes("霾")) bg = "#8e9eab";
+  const bgMap = {
+    "CLEAR_DAY": "#4A90D9", "CLEAR_NIGHT": "#1a3a5c",
+    "PARTLY_CLOUDY_DAY": "#6b8e9e", "CLOUDY": "#5b7a8a",
+    "LIGHT_RAIN": "#4682B4", "MODERATE_RAIN": "#3a6a8a",
+    "LIGHT_SNOW": "#8ba4b5", "FOG": "#8e9eab", "HAZE": "#8e9eab"
+  };
+  const bg = bgMap[skycon] || "#4A90D9";
   
   return {
     type: "widget",
+    padding: 10,
+    gap: 2,
+    backgroundColor: bg,
     children: [
-      {
-        type: "vstack",
-        spacing: 0,
-        children: [
-          // 城市名
-          { type: "text", text: "潍坊", font: { size: 13, weight: "medium" }, color: "#ffffff" },
-          
-          // 温度（大字）
-          { type: "text", text: `${temp}°`, font: { size: 38, weight: "thin" }, color: "#ffffff" },
-          
-          // 图标 + 天气描述
-          { type: "text", text: `${icon} ${desc}`, font: { size: 11 }, color: "#ffffffcc" },
-          
-          // 湿度
-          { type: "text", text: `湿度 ${humidity}%`, font: { size: 10 }, color: "#ffffff99" }
-        ]
-      }
-    ],
-    background: {
-      color: bg
-    }
+      { type: "text", text: "潍坊", font: { size: 13, weight: "medium" }, textColor: "#ffffffcc" },
+      { type: "text", text: `${temp}°`, font: { size: 42, weight: "thin" }, textColor: "#ffffff" },
+      { type: "text", text: `${icon} ${skycon.replace(/_/g, " ")}`, font: { size: 11 }, textColor: "#ffffffcc" },
+      { type: "text", text: `湿度 ${humidity}%`, font: { size: 10 }, textColor: "#ffffff99" }
+    ]
   };
 }

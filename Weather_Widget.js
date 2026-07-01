@@ -58,12 +58,12 @@ export default async function(ctx) {
         type: "vstack",
         spacing: 8,
         children: [
-          { type: "text", text: "潍坊", font: { size: 15, weight: "bold" } },
-          { type: "text", text: `${icon} ${temp}°`, font: { size: 36, weight: "bold" } },
-          { type: "text", text: `💧 湿度 ${humidity}%  🌡 AQI ${aqi}`, font: { size: 14 } },
-          { type: "text", text: desc, font: { size: 14 } },
-          { type: "text", text: dateStr, font: { size: 13, color: "#ccc" } },
-          rainInfo ? { type: "text", text: rainInfo, font: { size: 13, color: "#ffcc00" } } : null
+          { type: "text", text: "潍坊", font: { size: 13, weight: "bold" } },
+          { type: "text", text: `${icon} ${temp}°`, font: { size: 34, weight: "bold" } },
+          { type: "text", text: `💧 湿度 ${humidity}%  🌡 AQI ${aqi}`, font: { size: 12 } },
+          { type: "text", text: desc, font: { size: 12 } },
+          { type: "text", text: dateStr, font: { size: 11, color: "#ccc" } },
+          rainInfo ? { type: "text", text: rainInfo, font: { size: 11, color: "#ffcc00" } } : null
         ].filter(Boolean)
       }
     ],

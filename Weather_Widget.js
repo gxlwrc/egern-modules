@@ -17,18 +17,32 @@ export default async function(ctx) {
 
   const coord = cityCoords[city] || cityCoords["weifang"];
 
-  const C = {
-    bg: { light: "#FFFFFF", dark: "#1C1C1E" },
-    text: { light: "#1A1A1A", dark: "#FFFFFF" },
-    sub: { light: "#666666", dark: "#CCCCCC" },
-    dim: { light: "#999999", dark: "#888888" },
-    accent: { light: "#007AFF", dark: "#5AC8FA" },
-    green: { light: "#34C759", dark: "#30D158" },
-    purple: { light: "#5856D6", dark: "#7D7AFF" },
-    orange: { light: "#FF9500", dark: "#FFB347" },
-    red: { light: "#FF3B30", dark: "#FF6B6B" },
-    blue: { light: "#007AFF", dark: "#5AC8FA" },
+  // 天气背景色
+  const weatherBg = {
+    "CLEAR_DAY": { light: "#4A90D9", dark: "#1a3a5c" },
+    "CLEAR_NIGHT": { light: "#2C3E50", dark: "#1a1a2e" },
+    "PARTLY_CLOUDY_DAY": { light: "#87CEEB", dark: "#4a6fa5" },
+    "PARTLY_CLOUDY_NIGHT": { light: "#34495E", dark: "#2c3e50" },
+    "CLOUDY": { light: "#95A5A6", dark: "#636e72" },
+    "LIGHT_HAZE": { light: "#BDC3C7", dark: "#95a5a6" },
+    "MODERATE_HAZE": { light: "#A0A0A0", dark: "#808080" },
+    "HEAVY_HAZE": { light: "#808080", dark: "#606060" },
+    "LIGHT_RAIN": { light: "#6CA6CD", dark: "#4a7a9b" },
+    "MODERATE_RAIN": { light: "#5B9BD5", dark: "#3a7ab5" },
+    "HEAVY_RAIN": { light: "#4682B4", dark: "#2a6294" },
+    "STORM_RAIN": { light: "#36648B", dark: "#1a446b" },
+    "FOG": { light: "#C0C0C0", dark: "#a0a0a0" },
+    "LIGHT_SNOW": { light: "#B0C4DE", dark: "#8ba5c0" },
+    "MODERATE_SNOW": { light: "#ADD8E6", dark: "#87ceeb" },
+    "HEAVY_SNOW": { light: "#E0E0E0", dark: "#c0c0c0" },
+    "STORM_SNOW": { light: "#D0D0D0", dark: "#b0b0b0" },
+    "WIND": { light: "#87CEEB", dark: "#5f9ea0" },
   };
+
+  // 天气文字颜色（深色背景用白色文字）
+  const textColor = { light: "#FFFFFF", dark: "#FFFFFF" };
+  const subColor = { light: "#E0E0E0", dark: "#E0E0E0" };
+  const dimColor = { light: "#C0C0C0", dark: "#C0C0C0" };
 
   const skyIcons = {
     "CLEAR_DAY": "☀️", "CLEAR_NIGHT": "🌙",
@@ -59,14 +73,14 @@ export default async function(ctx) {
   const dateStr = (now.getMonth()+1)+"月"+now.getDate()+"日 周"+wd[now.getDay()];
 
   let temp="--", humidity="--", windSpeed="--";
-  let desc="加载中...", icon="🌤️";
+  let desc="加载中...", icon="🌤️", skycon="CLOUDY";
   let feelsLike="--", aqi="--";
   let rainText = "";
 
   const CK = "weather_caiyun_"+city;
   try {
     const ca = ctx.storage.getJSON(CK);
-    if(ca&&ca.t){temp=ca.t;humidity=ca.h;windSpeed=ca.w;desc=ca.d;icon=ca.i;feelsLike=ca.f;aqi=ca.a;rainText=ca.rain||"";}
+    if(ca&&ca.t){temp=ca.t;humidity=ca.h;windSpeed=ca.w;desc=ca.d;icon=ca.i;feelsLike=ca.f;aqi=ca.a;rainText=ca.rain||"";skycon=ca.sky||"CLOUDY";}
   }catch(_){}
 
   try {
@@ -78,18 +92,19 @@ export default async function(ctx) {
     temp = Math.round(rt.temperature);
     humidity = Math.round(rt.humidity * 100);
     windSpeed = Math.round(rt.wind.speed);
-    icon = skyIcons[rt.skycon] || "🌤️";
-    desc = skyDesc[rt.skycon] || rt.skycon;
+    skycon = rt.skycon;
+    icon = skyIcons[skycon] || "🌤️";
+    desc = skyDesc[skycon] || skycon;
     feelsLike = Math.round(rt.apparent_temperature);
     aqi = rt.air_quality && rt.air_quality.aqi ? rt.air_quality.aqi.chn : "--";
 
-    // 获取未来小时预报找下雨
     try {
       const hUrl = "https://api.caiyunapp.com/v2.6/"+token+"/"+coord+"/hourly?hourlysteps=6";
       const hr = await ctx.http.get(hUrl, {timeout:10000});
       const hj = await hr.json();
       const hData = hj.result.hourly;
       if(hData && hData.precipitation) {
+        rainText = "未来6小时无雨";
         for(let i = 0; i < hData.precipitation.length; i++) {
           const prob = hData.precipitation[i].probability;
           if(prob > 0.3) {
@@ -98,56 +113,57 @@ export default async function(ctx) {
             break;
           }
         }
-        if(!rainText) rainText = "未来6小时无雨";
       }
     } catch(_){}
 
-    ctx.storage.setJSON(CK, {t:temp, h:humidity, w:windSpeed, d:desc, i:icon, f:feelsLike, a:aqi, rain:rainText});
+    ctx.storage.setJSON(CK, {t:temp, h:humidity, w:windSpeed, d:desc, i:icon, f:feelsLike, a:aqi, rain:rainText, sky:skycon});
   } catch(e) {}
+
+  const bg = weatherBg[skycon] || weatherBg["CLOUDY"];
 
   return {
     type: "widget",
-    backgroundColor: C.bg,
+    backgroundColor: bg,
     padding: 12,
     gap: 6,
     children: [
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:city, font:{size:13,weight:"semibold"}, textColor:C.accent},
+          {type:"text", text:city, font:{size:13,weight:"semibold"}, textColor:textColor},
           {type:"spacer"},
-          {type:"text", text:dateStr, font:{size:11}, textColor:C.dim}
+          {type:"text", text:dateStr, font:{size:11}, textColor:dimColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
           {type:"text", text:icon, font:{size:38}},
-          {type:"text", text:temp+"°C", font:{size:30,weight:"bold"}, textColor:C.text},
+          {type:"text", text:temp+"°C", font:{size:30,weight:"bold"}, textColor:textColor},
           {type:"spacer"},
-          {type:"text", text:desc, font:{size:12}, textColor:C.sub}
+          {type:"text", text:desc, font:{size:12}, textColor:subColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"体感"+feelsLike+"°", font:{size:11}, textColor:C.dim},
+          {type:"text", text:"体感"+feelsLike+"°", font:{size:11}, textColor:dimColor},
           {type:"spacer"},
-          {type:"text", text:"AQI "+aqi, font:{size:11}, textColor:C.dim}
+          {type:"text", text:"AQI "+aqi, font:{size:11}, textColor:dimColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"💧"+humidity+"%", font:{size:11}, textColor:C.green},
+          {type:"text", text:"💧"+humidity+"%", font:{size:11}, textColor:subColor},
           {type:"spacer"},
-          {type:"text", text:"🌬"+windSpeed+"m/s", font:{size:11}, textColor:C.purple}
+          {type:"text", text:"🌬"+windSpeed+"m/s", font:{size:11}, textColor:subColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"🌧 "+rainText, font:{size:11}, textColor:C.blue}
+          {type:"text", text:"🌧 "+rainText, font:{size:11}, textColor:subColor}
         ]
       }
     ]

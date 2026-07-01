@@ -17,32 +17,30 @@ export default async function(ctx) {
 
   const coord = cityCoords[city] || cityCoords["weifang"];
 
-  // 天气背景色
   const weatherBg = {
     "CLEAR_DAY": { light: "#4A90D9", dark: "#1a3a5c" },
     "CLEAR_NIGHT": { light: "#2C3E50", dark: "#1a1a2e" },
-    "PARTLY_CLOUDY_DAY": { light: "#87CEEB", dark: "#4a6fa5" },
-    "PARTLY_CLOUDY_NIGHT": { light: "#34495E", dark: "#2c3e50" },
-    "CLOUDY": { light: "#95A5A6", dark: "#636e72" },
-    "LIGHT_HAZE": { light: "#BDC3C7", dark: "#95a5a6" },
-    "MODERATE_HAZE": { light: "#A0A0A0", dark: "#808080" },
-    "HEAVY_HAZE": { light: "#808080", dark: "#606060" },
-    "LIGHT_RAIN": { light: "#6CA6CD", dark: "#4a7a9b" },
-    "MODERATE_RAIN": { light: "#5B9BD5", dark: "#3a7ab5" },
-    "HEAVY_RAIN": { light: "#4682B4", dark: "#2a6294" },
-    "STORM_RAIN": { light: "#36648B", dark: "#1a446b" },
-    "FOG": { light: "#C0C0C0", dark: "#a0a0a0" },
-    "LIGHT_SNOW": { light: "#B0C4DE", dark: "#8ba5c0" },
-    "MODERATE_SNOW": { light: "#ADD8E6", dark: "#87ceeb" },
-    "HEAVY_SNOW": { light: "#E0E0E0", dark: "#c0c0c0" },
-    "STORM_SNOW": { light: "#D0D0D0", dark: "#b0b0b0" },
-    "WIND": { light: "#87CEEB", dark: "#5f9ea0" },
+    "PARTLY_CLOUDY_DAY": { light: "#5BA3D9", dark: "#3a7ab5" },
+    "PARTLY_CLOUDY_NIGHT": { light: "#2C3E50", dark: "#1a2a3a" },
+    "CLOUDY": { light: "#4A6572", dark: "#2a4552" },
+    "LIGHT_HAZE": { light: "#6D7B8D", dark: "#4a5a6a" },
+    "MODERATE_HAZE": { light: "#5A6A7A", dark: "#3a4a5a" },
+    "HEAVY_HAZE": { light: "#4A5A6A", dark: "#2a3a4a" },
+    "LIGHT_RAIN": { light: "#4682B4", dark: "#2a6294" },
+    "MODERATE_RAIN": { light: "#3A7AB5", dark: "#1a5a95" },
+    "HEAVY_RAIN": { light: "#2A6A95", dark: "#0a4a75" },
+    "STORM_RAIN": { light: "#1A5A85", dark: "#0a3a65" },
+    "FOG": { light: "#6D7B8D", dark: "#4a5a6a" },
+    "LIGHT_SNOW": { light: "#6CA6CD", dark: "#4a8aad" },
+    "MODERATE_SNOW": { light: "#5B9BD5", dark: "#3a7ab5" },
+    "HEAVY_SNOW": { light: "#4A8BC2", dark: "#2a6ba2" },
+    "STORM_SNOW": { light: "#3A7BB2", dark: "#1a5b92" },
+    "WIND": { light: "#5BA3D9", dark: "#3a8ac0" },
   };
 
-  // 天气文字颜色（深色背景用白色文字）
   const textColor = { light: "#FFFFFF", dark: "#FFFFFF" };
-  const subColor = { light: "#E0E0E0", dark: "#E0E0E0" };
-  const dimColor = { light: "#C0C0C0", dark: "#C0C0C0" };
+  const subColor = { light: "#E8E8E8", dark: "#E8E8E8" };
+  const dimColor = { light: "#D0D0D0", dark: "#D0D0D0" };
 
   const skyIcons = {
     "CLEAR_DAY": "☀️", "CLEAR_NIGHT": "🌙",
@@ -124,46 +122,46 @@ export default async function(ctx) {
   return {
     type: "widget",
     backgroundColor: bg,
-    padding: 12,
-    gap: 6,
+    padding: 14,
+    gap: 8,
     children: [
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:city, font:{size:13,weight:"semibold"}, textColor:textColor},
+          {type:"text", text:city, font:{size:15,weight:"semibold"}, textColor:textColor},
           {type:"spacer"},
-          {type:"text", text:dateStr, font:{size:11}, textColor:dimColor}
+          {type:"text", text:dateStr, font:{size:13}, textColor:dimColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:icon, font:{size:38}},
-          {type:"text", text:temp+"°C", font:{size:30,weight:"bold"}, textColor:textColor},
+          {type:"text", text:icon, font:{size:42}},
+          {type:"text", text:temp+"°C", font:{size:36,weight:"bold"}, textColor:textColor},
           {type:"spacer"},
-          {type:"text", text:desc, font:{size:12}, textColor:subColor}
+          {type:"text", text:desc, font:{size:14}, textColor:subColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"体感"+feelsLike+"°", font:{size:11}, textColor:dimColor},
+          {type:"text", text:"体感"+feelsLike+"°", font:{size:13}, textColor:dimColor},
           {type:"spacer"},
-          {type:"text", text:"AQI "+aqi, font:{size:11}, textColor:dimColor}
+          {type:"text", text:"AQI "+aqi, font:{size:13}, textColor:dimColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"💧"+humidity+"%", font:{size:11}, textColor:subColor},
+          {type:"text", text:"💧"+humidity+"%", font:{size:13}, textColor:subColor},
           {type:"spacer"},
-          {type:"text", text:"🌬"+windSpeed+"m/s", font:{size:11}, textColor:subColor}
+          {type:"text", text:"🌬"+windSpeed+"m/s", font:{size:13}, textColor:subColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"🌧 "+rainText, font:{size:11}, textColor:subColor}
+          {type:"text", text:"🌧 "+rainText, font:{size:13}, textColor:subColor}
         ]
       }
     ]

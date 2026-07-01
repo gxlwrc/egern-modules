@@ -74,11 +74,12 @@ export default async function(ctx) {
   let desc="加载中...", icon="🌤️", skycon="CLOUDY";
   let feelsLike="--", aqi="--";
   let rainText = "";
+  let hourlyData = [];
 
   const CK = "weather_caiyun_"+city;
   try {
     const ca = ctx.storage.getJSON(CK);
-    if(ca&&ca.t){temp=ca.t;humidity=ca.h;windSpeed=ca.w;desc=ca.d;icon=ca.i;feelsLike=ca.f;aqi=ca.a;rainText=ca.rain||"";skycon=ca.sky||"CLOUDY";}
+    if(ca&&ca.t){temp=ca.t;humidity=ca.h;windSpeed=ca.w;desc=ca.d;icon=ca.i;feelsLike=ca.f;aqi=ca.a;rainText=ca.rain||"";skycon=ca.sky||"CLOUDY";hourlyData=ca.hourly||[];}
   }catch(_){}
 
   try {
@@ -97,13 +98,14 @@ export default async function(ctx) {
     aqi = rt.air_quality && rt.air_quality.aqi ? rt.air_quality.aqi.chn : "--";
 
     try {
-      const hUrl = "https://api.caiyunapp.com/v2.6/"+token+"/"+coord+"/hourly?hourlysteps=6";
+      const hUrl = "https://api.caiyunapp.com/v2.6/"+token+"/"+coord+"/hourly?hourlysteps=12";
       const hr = await ctx.http.get(hUrl, {timeout:10000});
       const hj = await hr.json();
       const hData = hj.result.hourly;
+      
       if(hData && hData.precipitation) {
         rainText = "未来6小时无雨";
-        for(let i = 0; i < hData.precipitation.length; i++) {
+        for(let i = 0; i < Math.min(6, hData.precipitation.length); i++) {
           const prob = hData.precipitation[i].probability;
           if(prob > 0.3) {
             const h = new Date(hData.precipitation[i].datetime).getHours();
@@ -112,9 +114,33 @@ export default async function(ctx) {
           }
         }
       }
+
+      // 整十播报：找最近的整点小时
+      if(hData && hData.temperature) {
+        hourlyData = [];
+        const currentHour = now.getHours();
+        // 从下一个整点开始，每隔2小时取一个，取4个
+        let startHour = currentHour + 1;
+        if(startHour % 2 !== 0) startHour++;
+        
+        for(let i = 0; i < hData.temperature.length; i++) {
+          const t = hData.temperature[i];
+          const h = new Date(t.datetime).getHours();
+          if(h >= startHour && h % 2 === 0 && hourlyData.length < 4) {
+            const sky = hData.skycon[i];
+            const prob = hData.precipitation[i];
+            hourlyData.push({
+              time: h+":00",
+              temp: Math.round(t.value),
+              icon: skyIcons[sky.value] || "🌤️",
+              rain: prob ? Math.round(prob.probability*100) : 0
+            });
+          }
+        }
+      }
     } catch(_){}
 
-    ctx.storage.setJSON(CK, {t:temp, h:humidity, w:windSpeed, d:desc, i:icon, f:feelsLike, a:aqi, rain:rainText, sky:skycon});
+    ctx.storage.setJSON(CK, {t:temp, h:humidity, w:windSpeed, d:desc, i:icon, f:feelsLike, a:aqi, rain:rainText, sky:skycon, hourly:hourlyData});
   } catch(e) {}
 
   const bg = weatherBg[skycon] || weatherBg["CLOUDY"];
@@ -128,41 +154,56 @@ export default async function(ctx) {
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:city, font:{size:15,weight:"semibold"}, textColor:textColor},
+          {type:"text", text:city, font:{size:16,weight:"semibold"}, textColor:textColor},
           {type:"spacer"},
-          {type:"text", text:dateStr, font:{size:13}, textColor:dimColor}
+          {type:"text", text:dateStr, font:{size:14}, textColor:dimColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:icon, font:{size:42}},
-          {type:"text", text:temp+"°C", font:{size:36,weight:"bold"}, textColor:textColor},
+          {type:"text", text:icon, font:{size:46}},
+          {type:"text", text:temp+"°C", font:{size:40,weight:"bold"}, textColor:textColor},
           {type:"spacer"},
-          {type:"text", text:desc, font:{size:14}, textColor:subColor}
+          {type:"text", text:desc, font:{size:16}, textColor:subColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"体感"+feelsLike+"°", font:{size:13}, textColor:dimColor},
+          {type:"text", text:"体感"+feelsLike+"°", font:{size:14}, textColor:dimColor},
           {type:"spacer"},
-          {type:"text", text:"AQI "+aqi, font:{size:13}, textColor:dimColor}
+          {type:"text", text:"AQI "+aqi, font:{size:14}, textColor:dimColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"💧"+humidity+"%", font:{size:13}, textColor:subColor},
+          {type:"text", text:"💧"+humidity+"%", font:{size:14}, textColor:subColor},
           {type:"spacer"},
-          {type:"text", text:"🌬"+windSpeed+"m/s", font:{size:13}, textColor:subColor}
+          {type:"text", text:"🌬"+windSpeed+"m/s", font:{size:14}, textColor:subColor}
         ]
       },
       {
         type: "stack", direction: "row",
         children: [
-          {type:"text", text:"🌧 "+rainText, font:{size:13}, textColor:subColor}
+          {type:"text", text:"🌧 "+rainText, font:{size:14}, textColor:subColor}
         ]
+      },
+      // 整十播报
+      {
+        type: "stack", direction: "row",
+        children: hourlyData.map(function(h) {
+          return {
+            type: "stack", direction: "column",
+            children: [
+              {type:"text", text:h.time, font:{size:13}, textColor:dimColor},
+              {type:"text", text:h.icon, font:{size:20}},
+              {type:"text", text:h.temp+"°", font:{size:14,weight:"medium"}, textColor:textColor},
+              {type:"text", text:h.rain>0?h.rain+"%":"", font:{size:11}, textColor:h.rain>30?{light:"#FFD700",dark:"#FFD700"}:dimColor}
+            ]
+          };
+        })
       }
     ]
   };

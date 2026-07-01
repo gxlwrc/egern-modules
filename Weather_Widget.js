@@ -74,12 +74,12 @@ export default async function(ctx) {
   let desc="加载中...", icon="🌤️", skycon="CLOUDY";
   let feelsLike="--", aqi="--";
   let rainText = "";
-  let hourlyData = [];
+  let forecastText = "";
 
   const CK = "weather_caiyun_"+city;
   try {
     const ca = ctx.storage.getJSON(CK);
-    if(ca&&ca.t){temp=ca.t;humidity=ca.h;windSpeed=ca.w;desc=ca.d;icon=ca.i;feelsLike=ca.f;aqi=ca.a;rainText=ca.rain||"";skycon=ca.sky||"CLOUDY";hourlyData=ca.hourly||[];}
+    if(ca&&ca.t){temp=ca.t;humidity=ca.h;windSpeed=ca.w;desc=ca.d;icon=ca.i;feelsLike=ca.f;aqi=ca.a;rainText=ca.rain||"";skycon=ca.sky||"CLOUDY";forecastText=ca.forecast||"";}
   }catch(_){}
 
   try {
@@ -115,32 +115,27 @@ export default async function(ctx) {
         }
       }
 
-      // 整十播报：找最近的整点小时
+      // 整点播报：拼成文字
       if(hData && hData.temperature) {
-        hourlyData = [];
         const currentHour = now.getHours();
-        // 从下一个整点开始，每隔2小时取一个，取4个
         let startHour = currentHour + 1;
         if(startHour % 2 !== 0) startHour++;
         
-        for(let i = 0; i < hData.temperature.length; i++) {
+        let parts = [];
+        for(let i = 0; i < hData.temperature.length && parts.length < 4; i++) {
           const t = hData.temperature[i];
           const h = new Date(t.datetime).getHours();
-          if(h >= startHour && h % 2 === 0 && hourlyData.length < 4) {
+          if(h >= startHour && h % 2 === 0) {
             const sky = hData.skycon[i];
-            const prob = hData.precipitation[i];
-            hourlyData.push({
-              time: h+":00",
-              temp: Math.round(t.value),
-              icon: skyIcons[sky.value] || "🌤️",
-              rain: prob ? Math.round(prob.probability*100) : 0
-            });
+            const eIcon = skyIcons[sky.value] || "🌤️";
+            parts.push(h+":00"+eIcon+Math.round(t.value)+"°");
           }
         }
+        forecastText = parts.join("  ");
       }
     } catch(_){}
 
-    ctx.storage.setJSON(CK, {t:temp, h:humidity, w:windSpeed, d:desc, i:icon, f:feelsLike, a:aqi, rain:rainText, sky:skycon, hourly:hourlyData});
+    ctx.storage.setJSON(CK, {t:temp, h:humidity, w:windSpeed, d:desc, i:icon, f:feelsLike, a:aqi, rain:rainText, sky:skycon, forecast:forecastText});
   } catch(e) {}
 
   const bg = weatherBg[skycon] || weatherBg["CLOUDY"];
@@ -190,20 +185,11 @@ export default async function(ctx) {
           {type:"text", text:"🌧 "+rainText, font:{size:14}, textColor:subColor}
         ]
       },
-      // 整十播报
       {
         type: "stack", direction: "row",
-        children: hourlyData.map(function(h) {
-          return {
-            type: "stack", direction: "column",
-            children: [
-              {type:"text", text:h.time, font:{size:13}, textColor:dimColor},
-              {type:"text", text:h.icon, font:{size:20}},
-              {type:"text", text:h.temp+"°", font:{size:14,weight:"medium"}, textColor:textColor},
-              {type:"text", text:h.rain>0?h.rain+"%":"", font:{size:11}, textColor:h.rain>30?{light:"#FFD700",dark:"#FFD700"}:dimColor}
-            ]
-          };
-        })
+        children: [
+          {type:"text", text:forecastText, font:{size:13}, textColor:dimColor}
+        ]
       }
     ]
   };

@@ -56,14 +56,12 @@ export default async function(ctx) {
     children: [
       {
         type: "vstack",
-        spacing: 8,
+        spacing: 4,
         children: [
-          { type: "text", text: "潍坊", font: { size: 11, weight: "bold" } },
-          { type: "text", text: `${icon} ${temp}°`, font: { size: 28, weight: "bold" } },
-          { type: "text", text: `💧 湿度 ${humidity}%  🌡 AQI ${aqi}`, font: { size: 10 } },
-          { type: "text", text: desc, font: { size: 10 } },
-          { type: "text", text: dateStr, font: { size: 9, color: "#ccc" } },
-          rainInfo ? { type: "text", text: rainInfo, font: { size: 9, color: "#ffcc00" } } : null
+          { type: "text", text: `潍坊 ${icon} ${temp}°`, font: { size: 14, weight: "bold" } },
+          { type: "text", text: `💧${humidity}% 🌡AQI${aqi}`, font: { size: 10 } },
+          { type: "text", text: `${desc} ${dateStr}`, font: { size: 10, color: "#ccc" } },
+          rainInfo ? { type: "text", text: rainInfo, font: { size: 10, color: "#ffcc00" } } : null
         ].filter(Boolean)
       }
     ],
